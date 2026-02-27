@@ -1,0 +1,93 @@
+model_type: "AutoencoderKL"
+config:
+  in_channels: 3
+  out_channels: 3
+  down_block_types:
+    - "DownEncoderBlock2D"
+    - "DownEncoderBlock2D"
+    - "DownEncoderBlock2D"
+    - "DownEncoderBlock2D"
+  up_block_types:
+    - "UpDecoderBlock2D"
+    - "UpDecoderBlock2D"
+    - "UpDecoderBlock2D"
+    - "UpDecoderBlock2D"
+  block_out_channels:
+    - 128
+    - 256
+    - 512
+    - 512
+  latent_channels: 4
+  sample_size: 512
+  scaling_factor: 0.18215
+  act_fn: "silu"
+  downsample_factor: 8
+  spatial_dims: 2
+
+training:
+  image_size: 512
+  batch_size: 1
+  learning_rate: 5.0e-06
+  epochs: 5
+  weight_decay: 1.0e-04
+  gradient_clip: 1.0
+  mixed_precision: "fp16"
+  use_lpip_loss: true
+  lpip_weight: 0.1
+  mse_weight: 1.0
+
+lora:
+  rank: 8
+  alpha: 1.0
+  target_modules:
+    - "to_q"
+    - "to_k"
+    - "to_v"
+    - "to_out.0"
+    - "proj_in"
+    - "proj_out"
+    - "conv_in"
+    - "conv_out"
+    - "conv_shortcut"
+    - "time_emb_proj"
+    - "ff.net.0.proj"
+    - "ff.net.2"
+
+inference:
+  num_inference_steps: 30
+  guidance_scale: 7.5
+  height: 512
+  width: 512
+  seed: 42
+  scheduler_type: "ddim"
+  output_format: "pil"
+  safety_checker: false
+
+paths:
+  base_model: "./model/v1-5-pruned.ckpt"
+  clip_model: "./model/clip-vit-large-patch14"
+  train_data_dir: "./data/raw_512"
+  output_dir: "./models"
+  vae_output_dir: "./vae_models"
+  lora_output_dir: "./lora_models"
+  test_data_dir: "./data/test"
+  results_dir: "./results"
+
+evaluation:
+  metrics:
+    - "ssim"
+    - "mse"
+    - "psnr"
+    - "lpips"
+  test_samples: 10
+  save_original_vs_reconstructed: true
+  save_generated_samples: true
+  batch_size: 1
+
+optimization:
+  use_amp: true
+  grad_accumulation_steps: 1
+  warmup_epochs: 3
+  scheduler_type: "cosine_annealing"
+  early_stopping_patience: 5
+  save_best_only: true
